@@ -1,12 +1,17 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-import models, schemas
+import models, schemas, crud
 from database import engine, SessionLocal
 
 # Create all database tables
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="PySQL Gym 🧠")
+app = FastAPI(title="PySQL Gym 🧠", description="Learn Python and SQL through interactive quizzes!")
+
+# Mount static files
+# app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Dependency for DB session
 def get_db():
@@ -17,64 +22,135 @@ def get_db():
         db.close()
 
 
-# 🏠 Home route
-@app.get("/")
+# 🏠 Home route - serve the frontend
+@app.get("")
 def read_root():
-    return {"message": "Welcome to PySQL Gym! 🏋️‍♀️"}
+    return FileResponse("static/index.html")
 
 
 # 🧱 TOPIC ENDPOINTS
-@app.post("/topics/", response_model=schemas.Topic)
+@app.post("/api/topics/", response_model=schemas.Topic)
 def create_topic(topic: schemas.TopicCreate, db: Session = Depends(get_db)):
-    db_topic = models.Topic(title=topic.title, description=topic.description)
-    db.add(db_topic)
-    db.commit()
-    db.refresh(db_topic)
-    return db_topic
+    return crud.create_topic(db=db, topic=topic)
 
 
-@app.get("/topics/", response_model=list[schemas.Topic])
+@app.get("/api/topics/", response_model=list[schemas.Topic])
 def read_topics(db: Session = Depends(get_db)):
-    return db.query(models.Topic).all()
+    return crud.get_topics(db)
+
+
+@app.get("/api/topics/{topic_id}", response_model=schemas.Topic)
+def read_topic(topic_id: int, db: Session = Depends(get_db)):
+    topic = crud.get_topic(db, topic_id=topic_id)
+    if topic is None:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    return topic
 
 
 # ❓ QUIZ ENDPOINTS
-@app.post("/quizzes/", response_model=schemas.Quiz)
+@app.post("/api/quizzes/", response_model=schemas.Quiz)
 def create_quiz(quiz: schemas.QuizCreate, db: Session = Depends(get_db)):
     # Check if topic exists
-    topic = db.query(models.Topic).filter(models.Topic.id == quiz.topic_id).first()
+    topic = crud.get_topic(db, topic_id=quiz.topic_id)
     if not topic:
         raise HTTPException(status_code=404, detail="Topic not found")
-    db_quiz = models.Quiz(question=quiz.question, answer=quiz.answer, topic_id=quiz.topic_id)
-    db.add(db_quiz)
-    db.commit()
-    db.refresh(db_quiz)
-    return db_quiz
+    return crud.create_quiz(db=db, quiz=quiz)
 
 
-@app.get("/quizzes/", response_model=list[schemas.Quiz])
-def read_quizzes(db: Session = Depends(get_db)):
-    return db.query(models.Quiz).all()
+@app.get("/api/quizzes/topic/{topic_id}", response_model=list[schemas.Quiz])
+def read_quizzes_by_topic(topic_id: int, db: Session = Depends(get_db)):
+    return crud.get_quizzes_by_topic(db, topic_id=topic_id)
+
+
+@app.get("/api/quizzes/{quiz_id}", response_model=schemas.Quiz)
+def read_quiz(quiz_id: int, db: Session = Depends(get_db)):
+    quiz = crud.get_quiz(db, quiz_id=quiz_id)
+    if quiz is None:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    return quiz
 
 
 # 🧾 SUBMISSION ENDPOINTS
-@app.post("/submissions/", response_model=schemas.Submission)
+@app.post("/api/submissions/", response_model=schemas.Submission)
 def create_submission(submission: schemas.SubmissionCreate, db: Session = Depends(get_db)):
-    # Check if quiz exists
-    quiz = db.query(models.Quiz).filter(models.Quiz.id == submission.quiz_id).first()
-    if not quiz:
+    db_submission = crud.create_submission(db=db, submission=submission)
+    if db_submission is None:
         raise HTTPException(status_code=404, detail="Quiz not found")
-    db_submission = models.Submission(
-        user_name=submission.user_name,
-        user_answer=submission.user_answer,
-        quiz_id=submission.quiz_id,
-    )
-    db.add(db_submission)
-    db.commit()
-    db.refresh(db_submission)
     return db_submission
 
 
-@app.get("/submissions/", response_model=list[schemas.Submission])
+@app.get("/api/submissions/", response_model=list[schemas.Submission])
 def read_submissions(db: Session = Depends(get_db)):
-    return db.query(models.Submission).all()
+    return crud.get_submissions(db)
+
+
+# 🎯 Initialize with sample data
+@app.post("/api/init-data/")
+def initialize_sample_data(db: Session = Depends(get_db)):
+    """Initialize the database with sample topics and quizzes"""
+    
+    # Check if data already exists
+    existing_topics = crud.get_topics(db)
+    if existing_topics:
+        return {"message": "Sample data already exists"}
+    
+    # Create sample topics
+    python_topic = crud.create_topic(db, schemas.TopicCreate(
+        title="Python Basics",
+        description="Learn the fundamentals of Python programming"
+    ))
+    
+    sql_topic = crud.create_topic(db, schemas.TopicCreate(
+        title="SQL Fundamentals", 
+        description="Master the basics of SQL database queries"
+    ))
+    
+    # Create sample Python quizzes
+    python_quizzes = [
+        {
+            "question": "What is the correct way to create a list in Python?",
+            "choices": ["list = []", "list = ()", "list = {}", "list = <>"],
+            "correct_answer": "list = []",
+            "topic_id": python_topic.id
+        },
+        {
+            "question": "Which keyword is used to define a function in Python?",
+            "choices": ["function", "def", "func", "define"],
+            "correct_answer": "def",
+            "topic_id": python_topic.id
+        },
+        {
+            "question": "What does 'len()' function do in Python?",
+            "choices": ["Returns the length of an object", "Creates a new list", "Sorts a list", "Removes duplicates"],
+            "correct_answer": "Returns the length of an object",
+            "topic_id": python_topic.id
+        }
+    ]
+    
+    # Create sample SQL quizzes
+    sql_quizzes = [
+        {
+            "question": "Which SQL statement is used to extract data from a database?",
+            "choices": ["GET", "SELECT", "EXTRACT", "OPEN"],
+            "correct_answer": "SELECT",
+            "topic_id": sql_topic.id
+        },
+        {
+            "question": "Which SQL clause is used to filter records?",
+            "choices": ["FILTER", "WHERE", "HAVING", "CONDITION"],
+            "correct_answer": "WHERE",
+            "topic_id": sql_topic.id
+        },
+        {
+            "question": "What does SQL stand for?",
+            "choices": ["Structured Query Language", "Simple Query Language", "Standard Query Language", "System Query Language"],
+            "correct_answer": "Structured Query Language",
+            "topic_id": sql_topic.id
+        }
+    ]
+    
+    # Add all quizzes
+    for quiz_data in python_quizzes + sql_quizzes:
+        crud.create_quiz(db, schemas.QuizCreate(**quiz_data))
+    
+    return {"message": "Sample data initialized successfully!"}

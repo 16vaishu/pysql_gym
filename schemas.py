@@ -3,10 +3,11 @@ from typing import List, Optional
 
 class QuizBase(BaseModel):
     question: str
-    answer: str
+    choices: List[str]
+    correct_answer: str
 
 class QuizCreate(QuizBase):
-    pass
+    topic_id: int
 
 class Quiz(QuizBase):
     id: int
@@ -33,7 +34,7 @@ class Topic(TopicBase):
 
 class SubmissionBase(BaseModel):
     user_name: str
-    user_answer: str
+    selected: str
 
 class SubmissionCreate(SubmissionBase):
     quiz_id: int
@@ -41,6 +42,8 @@ class SubmissionCreate(SubmissionBase):
 class Submission(SubmissionBase):
     id: int
     quiz_id: int
+    is_correct: bool
+    score: int
 
     class Config:
         orm_mode = True
