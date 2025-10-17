@@ -21,8 +21,8 @@ app = FastAPI(
 )
 origins=[
     "http://127.0.0.1:3000",
-    "http://localhost:3000"
-    
+    "http://localhost:3000",
+    "https://fastapi-service-230188823531.us-central1.run.app"
 ]
 
 # CORS
