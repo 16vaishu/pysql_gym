@@ -1,33 +1,37 @@
-# Base Python image
-FROM python:3.11-slim
+# ================================
+# Stage 1: Build the frontend
+# ================================
+FROM node:18 AS frontend-builder
+
+WORKDIR /app/frontend
+COPY frontend ./                 # 👈 copy your frontend source code
+RUN npm install
+RUN npm run build
+
+
+# ================================
+# Stage 2: Build the FastAPI backend
+# ================================
+FROM python:3.11-slim AS backend
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies (for building frontend)
-RUN apt-get update && apt-get install -y curl nodejs npm \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy Python dependencies and install
+# Copy dependency list and install
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend Python files
-COPY *.py ./
+# Copy backend code
+COPY . .
 
-# Copy frontend source
-COPY frontend/build ./frontend/build
-
-# Build frontend (React/Vue SPA)
-WORKDIR /app/frontend
-RUN npm install
-RUN npm run build
-
-# Switch back to app directory
-WORKDIR /app
+# Copy built frontend files from previous stage
+COPY --from=frontend-builder /app/frontend/build ./frontend/build
 
 # Expose port for Cloud Run
 EXPOSE 8080
 
-# Start FastAPI server
+# Environment variables
+ENV PYTHONUNBUFFERED=1
+
+# Start FastAPI app on port 8080
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
