@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY *.py ./
 
 # Copy frontend source
-COPY frontend ./frontend
+COPY frontend/build ./frontend/build
 
 # Build frontend (React/Vue SPA)
 WORKDIR /app/frontend
