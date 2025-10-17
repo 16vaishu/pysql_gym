@@ -40,7 +40,7 @@ export function QuizzesPage({ onNavigate }: QuizzesPageProps) {
   useEffect(() => {
     const fetchQuizzes = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/quizzes/");
+        const res = await fetch("http://127.0.0.1:8080/api/quizzes/");
         if (!res.ok) throw new Error("Failed to fetch quizzes");
         const data = await res.json();
         setQuizzes(data);
