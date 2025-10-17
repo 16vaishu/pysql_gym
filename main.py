@@ -39,7 +39,7 @@ app = FastAPI()
 
 # --- Serve frontend SPA ---
 frontend_dist_path = os.path.join("frontend", "build")
-app.mount("/static", StaticFiles(directory=os.path.join(frontend_dist_path, "assets")), name="static")
+app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist_path, "assets")), name="assets")
 
 # Dependency for DB session
 def get_db():
