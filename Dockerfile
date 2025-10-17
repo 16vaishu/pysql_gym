@@ -4,7 +4,7 @@
 FROM node:18 AS frontend-builder
 
 WORKDIR /app/frontend
-COPY frontend ./                 # 👈 copy your frontend source code
+COPY frontend ./
 RUN npm install
 RUN npm run build
 
