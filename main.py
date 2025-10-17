@@ -35,8 +35,11 @@ app.add_middleware(
 )
 
 # Frontend static path
+app = FastAPI()
+
+# --- Serve frontend SPA ---
 frontend_dist_path = os.path.join("frontend", "build")
-app.mount("/static", StaticFiles(directory=os.path.join(frontend_dist_path, "assets")), name="static")
+app.mount("/", StaticFiles(directory=frontend_dist_path, html=True), name="frontend")
 
 # Dependency for DB session
 def get_db():
