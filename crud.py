@@ -22,7 +22,8 @@ def create_quiz(db: Session, quiz: schemas.QuizCreate):
         topic_id=quiz.topic_id,
         question=quiz.question,
         choices=quiz.choices,
-        correct_answer=quiz.correct_answer
+        correct_answer=quiz.correct_answer,
+        level=quiz.level
     )
     db.add(db_quiz)
     db.commit()
@@ -34,6 +35,10 @@ def get_quizzes_by_topic(db: Session, topic_id: int):
 
 def get_quiz(db: Session, quiz_id: int):
     return db.query(models.Quiz).filter(models.Quiz.id == quiz_id).first()
+
+def get_quizzes(db: Session):
+    return db.query(models.Quiz).all()
+
 
 # Submissions
 def create_submission(db: Session, submission: schemas.SubmissionCreate):

@@ -5,6 +5,7 @@ class QuizBase(BaseModel):
     question: str
     choices: List[str]
     correct_answer: str
+    level: Optional[str] 
 
 class QuizCreate(QuizBase):
     topic_id: int

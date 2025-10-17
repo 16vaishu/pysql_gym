@@ -8,7 +8,7 @@ class Topic(Base):
     title = Column(String, unique=True, index=True)
     description = Column(String)
 
-    quizzes = relationship("Quiz", back_populates="topic")
+    quizzes = relationship("Quiz", back_populates="topic",cascade="all, delete")
 
 
 class Quiz(Base):
@@ -17,6 +17,7 @@ class Quiz(Base):
     question = Column(String)
     choices = Column(JSON)  # Store multiple choice options as JSON
     correct_answer = Column(String)
+    level = Column(String, nullable=True, default="beginner")
     topic_id = Column(Integer, ForeignKey("topics.id"))
 
     topic = relationship("Topic", back_populates="quizzes")
